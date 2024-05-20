@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -43,7 +44,22 @@ func handleConnection(conn net.Conn) {
 	buffer = buffer[:read]
 	log.Println("Received: ", string(buffer))
 
-	writeResponse(conn, http.StatusOK, []string{"Content-Length: 5", "Content-Type: text/plain"}, "Hello")
+	s := string(buffer)
+
+	parts := strings.Split(s, "\n")
+	requestLine := parts[0]
+	requestLineParts := strings.Split(requestLine, " ")
+	path := requestLineParts[1]
+
+	log.Printf("Path: %s", path)
+
+	if path == "/" {
+
+		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, "Hello")
+	} else {
+		writeResponse(conn, http.StatusNotFound, []string{}, "")
+
+	}
 }
 
 func writeLine(conn net.Conn, data string) {
@@ -53,10 +69,11 @@ func writeLine(conn net.Conn, data string) {
 	}
 }
 
-func writeHeaders(conn net.Conn, headers []string) {
+func writeHeaders(conn net.Conn, headers []string, contentLength int) {
 	for _, header := range headers {
 		writeLine(conn, header)
 	}
+	writeLine(conn, fmt.Sprintf("Content-Length: %d", contentLength))
 }
 
 func getHttpResponseLine(status int) string {
@@ -69,7 +86,7 @@ func writeStatusLine(conn net.Conn, status int) {
 
 func writeResponse(conn net.Conn, status int, headers []string, body string) {
 	writeStatusLine(conn, status)
-	writeHeaders(conn, headers)
+	writeHeaders(conn, headers, len(body))
 	writeLine(conn, "")
 	writeLine(conn, body)
 }
