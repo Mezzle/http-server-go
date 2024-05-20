@@ -46,12 +46,23 @@ func handleConnection(conn net.Conn) {
 
 	s := string(buffer)
 
-	parts := strings.Split(s, "\n")
+	parts := strings.Split(s, "\r\n")
 	requestLine := parts[0]
 	requestLineParts := strings.Split(requestLine, " ")
 	path := requestLineParts[1]
 
-	log.Printf("Path: %s", path)
+	headers := make(map[string]string)
+
+	for i := 1; i < len(parts); i++ {
+		if parts[i] == "" {
+			break
+		}
+
+		splitHeader := strings.Split(parts[i], ": ")
+		key := splitHeader[0]
+		value := splitHeader[1]
+		headers[key] = value
+	}
 
 	if path == "/" {
 		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, "Hello")
@@ -60,6 +71,11 @@ func handleConnection(conn net.Conn) {
 
 	if strings.HasPrefix(path, "/echo/") {
 		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, path[6:])
+		return
+	}
+
+	if path == "/user-agent" {
+		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, headers["User-Agent"])
 		return
 	}
 
