@@ -54,12 +54,16 @@ func handleConnection(conn net.Conn) {
 	log.Printf("Path: %s", path)
 
 	if path == "/" {
-
 		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, "Hello")
-	} else {
-		writeResponse(conn, http.StatusNotFound, []string{}, "")
-
+		return
 	}
+
+	if strings.HasPrefix(path, "/echo/") {
+		writeResponse(conn, http.StatusOK, []string{"Content-Type: text/plain"}, path[6:])
+		return
+	}
+
+	writeResponse(conn, http.StatusNotFound, []string{}, "")
 }
 
 func writeLine(conn net.Conn, data string) {
